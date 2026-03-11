@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>計算タップゲーム</title>
+<title>計算ストライクゲーム</title>
 
 <style>
 
@@ -16,10 +16,15 @@ font-size:40px;
 margin:20px;
 }
 
+#status{
+font-size:22px;
+margin:10px;
+}
+
 .grid{
 display:grid;
 grid-template-columns:repeat(3,100px);
-grid-gap:10px;
+gap:10px;
 justify-content:center;
 }
 
@@ -27,7 +32,7 @@ justify-content:center;
 width:100px;
 height:100px;
 font-size:35px;
-background:#f0f0f0;
+background:#eee;
 border-radius:10px;
 display:flex;
 align-items:center;
@@ -44,7 +49,10 @@ background:#ddd;
 
 <body>
 
-<div id="question">0 + 0</div>
+<h2>計算ストライクゲーム</h2>
+
+<div id="question"></div>
+<div id="status"></div>
 
 <div class="grid" id="grid"></div>
 
@@ -53,11 +61,18 @@ background:#ddd;
 <script>
 
 let correctAnswer
-let questionCount=0
-let mistake=false
-let maxQuestions=9
+let startTime
 
-function createQuestion(){
+let strikeStreak=0
+let strikeCount6=0
+let ballCount6=0
+let questionWindow=0
+
+let outs=0
+let ballSetCount=0
+let strikeSetCount=0
+
+function newQuestion(){
 
 let a=Math.floor(Math.random()*10)
 let b=Math.floor(Math.random()*10)
@@ -67,6 +82,8 @@ correctAnswer=a+b
 document.getElementById("question").innerText=a+" + "+b
 
 createGrid()
+
+startTime=Date.now()
 
 }
 
@@ -96,8 +113,7 @@ numbers.forEach(num=>{
 let div=document.createElement("div")
 div.className="cell"
 div.innerText=num
-
-div.onclick=()=>checkAnswer(num)
+div.onclick=()=>answer(num)
 
 grid.appendChild(div)
 
@@ -105,30 +121,114 @@ grid.appendChild(div)
 
 }
 
-function checkAnswer(num){
+function answer(num){
 
-questionCount++
+let time=(Date.now()-startTime)/1000
 
-if(num!=correctAnswer){
+let result=""
 
-mistake=true
-maxQuestions=16
+questionWindow++
+
+if(num==correctAnswer && time<=1.5){
+
+result="ストライク"
+
+strikeStreak++
+strikeCount6++
+
+}else{
+
+result="ボール"
+
+strikeStreak=0
+ballCount6++
 
 }
 
-if(questionCount>=maxQuestions){
+document.getElementById("status").innerText=result+" ("+time.toFixed(2)+"秒)"
 
-document.getElementById("result").innerText="終了！問題数："+questionCount
-document.getElementById("grid").innerHTML=""
+checkRules()
+
+}
+
+function checkRules(){
+
+// 9連続ストライク
+if(strikeStreak>=9){
+
+finish("3アウト！クリア！")
 return
 
 }
 
-createQuestion()
+// 3連続ストライク
+if(strikeStreak>=3){
+
+outs++
+resetWindow()
 
 }
 
-createQuestion()
+// 6問以内3ストライク
+if(strikeCount6>=3){
+
+strikeSetCount++
+outs++
+resetWindow()
+
+}
+
+// 6問以内4ボール
+if(ballCount6>=4){
+
+ballSetCount++
+resetWindow()
+
+}
+
+// クリア
+if(strikeSetCount>=3){
+
+finish("3アウト！クリア！")
+return
+
+}
+
+// ゲームオーバー
+if(ballSetCount>=4){
+
+finish("ゲームオーバー")
+return
+
+}
+
+// 6問終了リセット
+if(questionWindow>=6){
+
+resetWindow()
+
+}
+
+newQuestion()
+
+}
+
+function resetWindow(){
+
+questionWindow=0
+strikeCount6=0
+ballCount6=0
+
+}
+
+function finish(msg){
+
+document.getElementById("result").innerText=msg
+document.getElementById("grid").innerHTML=""
+
+}
+
+newQuestion()
 
 </script>
 
