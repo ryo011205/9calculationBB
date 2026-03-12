@@ -8,14 +8,15 @@
 
 body{
 font-family:sans-serif;
-background:#f4f4f4;
 text-align:center;
+background:#f5f5f5;
 }
 
 #judge{
-font-size:36px;
-height:50px;
+font-size:38px;
 color:red;
+height:50px;
+margin-top:10px;
 }
 
 .centerArea{
@@ -64,19 +65,15 @@ font-size:48px;
 .wrong{color:blue}
 
 .bsoArea{
-margin-left:50px;
-font-size:22px;
+margin-left:40px;
 text-align:left;
+font-size:22px;
 }
 
 .bsoRow{
 display:flex;
 align-items:center;
 margin:6px 0;
-}
-
-.bsoLabel{
-width:20px;
 }
 
 .light{
@@ -88,9 +85,14 @@ margin-left:5px;
 }
 
 button{
-font-size:20px;
-padding:10px 20px;
-margin-top:20px;
+font-size:18px;
+padding:8px 18px;
+margin:8px;
+}
+
+select,input{
+font-size:16px;
+margin:5px;
 }
 
 </style>
@@ -100,11 +102,43 @@ margin-top:20px;
 
 <h2>計算野球ゲーム ⚾</h2>
 
+<div id="menu">
+
+<div>
+モード
+<select id="mode">
+<option value="pitcher">ピッチャー</option>
+<option value="batter">バッター</option>
+</select>
+</div>
+
+<div>
+演算
+<select id="operator">
+<option value="+">＋</option>
+<option value="-">−</option>
+<option value="*">×</option>
+<option value="/">÷</option>
+</select>
+</div>
+
+<div>
+数字設定
+<select id="numberMode">
+<option value="random">ランダム</option>
+<option value="fixed">数字固定</option>
+</select>
+
+<input type="number" id="fixedNumber" min="1" max="99" value="5">
+</div>
+
 <button onclick="playBall()">プレイボール</button>
+
+</div>
 
 <div id="judge"></div>
 
-<div class="centerArea">
+<div class="centerArea" style="display:none" id="gameArea">
 
 <div class="boardArea">
 
@@ -116,21 +150,18 @@ margin-top:20px;
 
 <div class="bsoArea">
 
-<div class="bsoRow">
-<div class="bsoLabel">B</div>
+<div class="bsoRow">B
 <div class="light" id="b1"></div>
 <div class="light" id="b2"></div>
 <div class="light" id="b3"></div>
 </div>
 
-<div class="bsoRow">
-<div class="bsoLabel">S</div>
+<div class="bsoRow">S
 <div class="light" id="s1"></div>
 <div class="light" id="s2"></div>
 </div>
 
-<div class="bsoRow">
-<div class="bsoLabel">O</div>
+<div class="bsoRow">O
 <div class="light" id="o1"></div>
 <div class="light" id="o2"></div>
 </div>
@@ -143,23 +174,82 @@ margin-top:20px;
 
 <script>
 
+let mode
+let operator
+let numberMode
+let fixedNumber
+
 let correctAnswer
 let startTime
 
+let strike=0
+let ball=0
+let out=0
+let strikeOut=0
+let hit=0
+let fourBalls=0
+let questionCount=0
+
 function playBall(){
+
+mode=document.getElementById("mode").value
+operator=document.getElementById("operator").value
+numberMode=document.getElementById("numberMode").value
+fixedNumber=parseInt(document.getElementById("fixedNumber").value)
+
+document.getElementById("menu").style.display="none"
+document.getElementById("gameArea").style.display="flex"
+document.getElementById("result").innerHTML=""
+
+resetCounts()
 
 newQuestion()
 
 }
 
+function resetCounts(){
+
+strike=0
+ball=0
+out=0
+hit=0
+fourBalls=0
+strikeOut=0
+questionCount=0
+updateBSO()
+
+}
+
 function newQuestion(){
 
-let a=Math.floor(Math.random()*10)
-let b=Math.floor(Math.random()*10)
+let a,b
 
-correctAnswer=a+b
+if(numberMode=="fixed"){
 
-document.getElementById("question").innerText=a+" + "+b
+a=fixedNumber
+b=Math.floor(Math.random()*10)+1
+
+}else{
+
+a=Math.floor(Math.random()*10)+1
+b=Math.floor(Math.random()*10)+1
+
+}
+
+let text
+
+if(operator=="+") correctAnswer=a+b
+if(operator=="-") correctAnswer=a-b
+if(operator=="*") correctAnswer=a*b
+if(operator=="/"){
+correctAnswer=a
+b=Math.floor(Math.random()*9)+1
+a=correctAnswer*b
+}
+
+text=a+" "+operator+" "+b
+
+document.getElementById("question").innerText=text
 
 createGrid()
 
@@ -176,7 +266,7 @@ let nums=[]
 
 while(nums.length<8){
 
-let n=Math.floor(Math.random()*19)
+let n=Math.floor(Math.random()*100)
 
 if(n!=correctAnswer && !nums.includes(n)) nums.push(n)
 
@@ -201,15 +291,16 @@ grid.appendChild(d)
 
 function answer(cell,n){
 
+let time=(Date.now()-startTime)/1000
+
 if(n==correctAnswer){
-
 showMark(cell,"◯","correct")
-
 }else{
-
 showMark(cell,"×","wrong")
-
 }
+
+if(mode=="pitcher") pitcherJudge(n,time)
+else batterJudge(n,time)
 
 setTimeout(newQuestion,600)
 
@@ -220,8 +311,137 @@ function showMark(cell,symbol,type){
 let m=document.createElement("div")
 m.className="mark "+type
 m.innerText=symbol
-
 cell.appendChild(m)
+
+}
+
+function showJudge(text){
+
+document.getElementById("judge").innerText=text
+
+setTimeout(()=>{
+document.getElementById("judge").innerText=""
+},800)
+
+}
+
+function pitcherJudge(n,time){
+
+questionCount++
+
+if(time>=2 && n!=correctAnswer){
+showJudge("HOME RUN")
+gameOver()
+return
+}
+
+if(n==correctAnswer && time<=1.2){
+strike++
+showJudge("STRIKE")
+}
+
+else if(n==correctAnswer && time<=2){
+ball++
+showJudge("BALL")
+}
+
+else{
+hit++
+showJudge("HIT")
+}
+
+updateBSO()
+
+if(strike>=3){
+strikeOut++
+out++
+showJudge("STRIKE OUT")
+strike=0
+ball=0
+questionCount=0
+}
+
+if(ball>=4){
+fourBalls++
+showJudge("FOUR BALLS")
+strike=0
+ball=0
+questionCount=0
+}
+
+if(hit>=4 || hit+fourBalls>=4){
+gameOver()
+return
+}
+
+if(strikeOut>=3){
+clearGame()
+return
+}
+
+if(questionCount>=6){
+strike=0
+ball=0
+questionCount=0
+}
+
+}
+
+function batterJudge(n,time){
+
+if(n==correctAnswer){
+showJudge("HIT")
+}else{
+showJudge("STRIKE")
+}
+
+}
+
+function updateBSO(){
+
+let b=[b1,b2,b3]
+let s=[s1,s2]
+let o=[o1,o2]
+
+b.forEach(x=>x.style.background="#ddd")
+s.forEach(x=>x.style.background="#ddd")
+o.forEach(x=>x.style.background="#ddd")
+
+for(let i=0;i<ball && i<3;i++) b[i].style.background="green"
+for(let i=0;i<strike && i<2;i++) s[i].style.background="orange"
+for(let i=0;i<out && i<2;i++) o[i].style.background="red"
+
+}
+
+function gameOver(){
+
+document.getElementById("result").innerHTML=
+"<h2>GAME OVER</h2>\
+<button onclick='resetGame()'>ゲームセット</button>\
+<button onclick='nextInning()'>次のイニング</button>"
+
+}
+
+function clearGame(){
+
+document.getElementById("result").innerHTML=
+"<h2>クリア！</h2>\
+<button onclick='resetGame()'>ゲームセット</button>\
+<button onclick='nextInning()'>次のイニング</button>"
+
+}
+
+function resetGame(){
+
+location.reload()
+
+}
+
+function nextInning(){
+
+document.getElementById("result").innerHTML=""
+resetCounts()
+newQuestion()
 
 }
 
