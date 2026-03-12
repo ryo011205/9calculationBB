@@ -13,34 +13,56 @@ background:#f5f5f5;
 }
 
 #judge{
-font-size:40px;
-color:red;
+font-size:38px;
 height:50px;
+color:red;
 }
 
 #question{
 font-size:40px;
-margin:10px;
+margin-bottom:10px;
+}
+
+.game{
+display:flex;
+justify-content:center;
+gap:40px;
 }
 
 .grid{
 display:grid;
 grid-template-columns:repeat(3,100px);
 gap:10px;
-justify-content:center;
-margin-top:20px;
 }
 
 .cell{
 width:100px;
 height:100px;
-font-size:32px;
 background:white;
 border-radius:10px;
+font-size:32px;
 display:flex;
 align-items:center;
 justify-content:center;
 cursor:pointer;
+position:relative;
+}
+
+.mark{
+position:absolute;
+font-size:48px;
+}
+
+.correct{color:red}
+.wrong{color:blue}
+
+.light{
+display:inline-block;
+width:20px;
+height:20px;
+border-radius:50%;
+background:#ddd;
+margin:3px;
 }
 
 button{
@@ -56,30 +78,44 @@ margin:10px;
 
 <h2>計算野球ゲーム ⚾</h2>
 
-<div id="menu">
+<button onclick="playBall()">プレイボール</button>
 
-<button onclick="selectMode('pitcher')">ピッチャー</button>
-<button onclick="selectMode('batter')">バッター</button>
+<div id="judge"></div>
+<div id="question"></div>
+
+<div class="game">
+
+<div class="grid" id="grid"></div>
+
+<div>
+
+<div>B
+<span class="light" id="b1"></span>
+<span class="light" id="b2"></span>
+<span class="light" id="b3"></span>
+</div>
+
+<div>S
+<span class="light" id="s1"></span>
+<span class="light" id="s2"></span>
+</div>
+
+<div>O
+<span class="light" id="o1"></span>
+<span class="light" id="o2"></span>
+</div>
 
 </div>
 
-<div id="start"></div>
-
-<div id="judge"></div>
-
-<div id="question"></div>
-
-<div class="grid" id="grid"></div>
+</div>
 
 <div id="result"></div>
 
 <script>
 
-let mode=""
 let correctAnswer
 let startTime
 
-// pitcher
 let strike=0
 let ball=0
 let hit=0
@@ -87,38 +123,14 @@ let strikeOut=0
 let fourBalls=0
 let questionCount=0
 
-// batter
-let batterQ=0
-let batterWrong=0
-let batterStart
-let hr=0
-let doubleHit=0
-let singleHit=0
-let out=0
-let strikeOutB=0
-
-function selectMode(m){
-
-mode=m
-
-document.getElementById("menu").innerHTML=""
-
-document.getElementById("start").innerHTML=
-'<button onclick="playBall()">プレイボール</button>'
-
-}
-
 function playBall(){
 
-document.getElementById("start").innerHTML=""
-
-resetAll()
-
+resetGame()
 newQuestion()
 
 }
 
-function resetAll(){
+function resetGame(){
 
 strike=0
 ball=0
@@ -127,13 +139,7 @@ strikeOut=0
 fourBalls=0
 questionCount=0
 
-batterQ=0
-batterWrong=0
-hr=0
-doubleHit=0
-singleHit=0
-out=0
-strikeOutB=0
+updateBSO()
 
 }
 
@@ -150,12 +156,6 @@ createGrid()
 
 startTime=Date.now()
 
-if(mode=="batter" && batterQ==0){
-
-batterStart=Date.now()
-
-}
-
 }
 
 function createGrid(){
@@ -169,23 +169,19 @@ while(nums.length<8){
 
 let n=Math.floor(Math.random()*19)
 
-if(n!=correctAnswer && !nums.includes(n)){
-nums.push(n)
-}
+if(n!=correctAnswer && !nums.includes(n)) nums.push(n)
 
 }
 
 nums.push(correctAnswer)
-
 nums.sort(()=>Math.random()-0.5)
 
 nums.forEach(n=>{
 
 let d=document.createElement("div")
-
 d.className="cell"
 d.innerText=n
-d.onclick=()=>answer(n)
+d.onclick=()=>answer(d,n)
 
 grid.appendChild(d)
 
@@ -193,41 +189,56 @@ grid.appendChild(d)
 
 }
 
-function answer(n){
-
-if(mode=="pitcher") pitcherMode(n)
-if(mode=="batter") batterMode(n)
-
-}
-
-function showJudge(t){
-
-document.getElementById("judge").innerText=t
-
-setTimeout(()=>{
-document.getElementById("judge").innerText=""
-},800)
-
-}
-
-////////////////////////
-// pitcher
-////////////////////////
-
-function pitcherMode(n){
+function answer(cell,n){
 
 let time=(Date.now()-startTime)/1000
 
+if(n==correctAnswer){
+
+showMark(cell,"◯","correct")
+
+}else{
+
+showMark(cell,"×","wrong")
+
+}
+
+pitcherJudge(n,time)
+
+setTimeout(newQuestion,600)
+
+}
+
+function showMark(cell,symbol,type){
+
+let m=document.createElement("div")
+m.className="mark "+type
+m.innerText=symbol
+cell.appendChild(m)
+
+}
+
+function pitcherJudge(n,time){
+
 questionCount++
 
-if(n==correctAnswer && time<=1.5){
+if(time>=2 && n!=correctAnswer){
+
+showJudge("HOME RUN")
+
+gameOver()
+return
+
+}
+
+if(n==correctAnswer && time<=1.2){
 
 strike++
 showJudge("STRIKE")
 
 }
 
-else if(n==correctAnswer){
+else if(n==correctAnswer && time>1.2 && time<=2){
 
 ball++
 showJudge("BALL")
@@ -241,12 +252,16 @@ showJudge("HIT")
 
 }
 
+updateBSO()
+
 if(strike>=3){
 
 strikeOut++
 showJudge("STRIKE OUT")
 
-resetPitchSet()
+strike=0
+ball=0
+questionCount=0
 
 }
 
@@ -255,14 +270,22 @@ if(ball>=4){
 fourBalls++
 showJudge("FOUR BALLS")
 
-resetPitchSet()
+strike=0
+ball=0
+questionCount=0
 
 }
 
-if(hit>=4 || hit+fourBalls>=4){
+if(hit>=4){
 
 gameOver()
+return
 
+}
+
+if(hit+fourBalls>=4){
+
+gameOver()
 return
 
 }
@@ -270,22 +293,11 @@ return
 if(strikeOut>=3){
 
 clearGame()
-
 return
 
 }
 
 if(questionCount>=6){
-
-resetPitchSet()
-
-}
-
-newQuestion()
-
-}
-
-function resetPitchSet(){
 
 strike=0
 ball=0
@@ -293,150 +305,52 @@ questionCount=0
 
 }
 
-////////////////////////
-// batter
-////////////////////////
+}
 
-function batterMode(n){
+function showJudge(text){
 
-batterQ++
+document.getElementById("judge").innerText=text
 
-if(n!=correctAnswer){
-
-batterWrong++
+setTimeout(()=>{
+document.getElementById("judge").innerText=""
+},800)
 
 }
 
-if(batterQ>=5){
+function updateBSO(){
 
-judgeBatter()
+let b=[b1,b2,b3]
+let s=[s1,s2]
+let o=[o1,o2]
 
-return
+b.forEach(x=>x.style.background="#ddd")
+s.forEach(x=>x.style.background="#ddd")
+o.forEach(x=>x.style.background="#ddd")
 
-}
+for(let i=0;i<ball && i<3;i++){
 
-newQuestion()
-
-}
-
-function judgeBatter(){
-
-let time=(Date.now()-batterStart)/1000
-
-let result=""
-
-if(batterWrong==0){
-
-if(time<=5){
-
-result="HOME RUN"
-hr++
+b[i].style.background="green"
 
 }
 
-else if(time<=7){
+for(let i=0;i<strike && i<2;i++){
 
-result="2BASE HIT"
-doubleHit++
+s[i].style.background="orange"
 
 }
 
-else if(time<=9){
+for(let i=0;i<strikeOut && i<2;i++){
 
-result="HIT"
-singleHit++
+o[i].style.background="red"
 
 }
 
 }
-
-else if(batterWrong==1){
-
-if(time<=7){
-
-result="FOUR BALLS"
-singleHit++
-
-}else{
-
-result="OUT"
-out++
-
-}
-
-}
-
-else if(batterWrong==2){
-
-result="OUT"
-out++
-
-}
-
-else if(batterWrong>=3){
-
-result="STRIKE OUT"
-strikeOutB++
-
-}
-
-showJudge(result)
-
-if(strikeOutB>=3){
-
-gameOver()
-
-return
-
-}
-
-if(hr>=1){
-
-clearGame()
-return
-
-}
-
-if(doubleHit>=2){
-
-clearGame()
-return
-
-}
-
-if(doubleHit>=1 && singleHit>=2){
-
-clearGame()
-return
-
-}
-
-if(singleHit>=4){
-
-clearGame()
-return
-
-}
-
-if(out>=3){
-
-gameOver()
-return
-
-}
-
-batterQ=0
-batterWrong=0
-
-newQuestion()
-
-}
-
-////////////////////////
 
 function gameOver(){
 
 document.getElementById("result").innerHTML=
+
 "<h2>GAME OVER</h2><button onclick='location.reload()'>ピッチャー交代</button>"
 
 }
@@ -444,6 +358,7 @@ document.getElementById("result").innerHTML=
 function clearGame(){
 
 document.getElementById("result").innerHTML=
+
 "<h2>クリア！</h2><button onclick='location.reload()'>次のイニング</button>"
 
 }
