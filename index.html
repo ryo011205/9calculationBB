@@ -2,73 +2,63 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>計算野球ゲーム</title>
+<title>漢字×計算 野球ゲーム</title>
 
 <style>
 
 body{
 font-family:sans-serif;
 text-align:center;
-background:#f5f5f5;
+background:#f2f2f2;
 }
 
-#judge{
-font-size:38px;
-height:50px;
-color:red;
+#game{
+margin-top:30px;
 }
 
 #question{
-font-size:40px;
-margin-bottom:10px;
+font-size:28px;
+margin-bottom:20px;
 }
 
-.game{
-display:flex;
-justify-content:center;
-gap:40px;
-}
-
-.grid{
+#grid{
 display:grid;
-grid-template-columns:repeat(3,100px);
-gap:10px;
+grid-template-columns:repeat(3,80px);
+grid-gap:10px;
+justify-content:center;
+margin:20px auto;
 }
 
 .cell{
-width:100px;
-height:100px;
+width:80px;
+height:80px;
+font-size:28px;
 background:white;
-border-radius:10px;
-font-size:32px;
+border:2px solid #333;
 display:flex;
 align-items:center;
 justify-content:center;
 cursor:pointer;
-position:relative;
 }
 
-.mark{
+#bso{
 position:absolute;
-font-size:48px;
+right:50px;
+top:120px;
+font-size:22px;
+text-align:left;
 }
 
-.correct{color:red}
-.wrong{color:blue}
-
-.light{
-display:inline-block;
-width:20px;
-height:20px;
-border-radius:50%;
-background:#ddd;
-margin:3px;
+#judge{
+font-size:30px;
+margin-top:20px;
+height:40px;
 }
 
 button{
-font-size:20px;
 padding:10px 20px;
-margin:10px;
+font-size:16px;
+margin:5px;
 }
 
 </style>
@@ -76,112 +66,212 @@ margin:10px;
 
 <body>
 
-<h2>計算野球ゲーム ⚾</h2>
+<h1>漢字 × 計算 野球ゲーム</h1>
 
-<button onclick="playBall()">プレイボール</button>
-
-<div id="judge"></div>
-<div id="question"></div>
-
-<div class="game">
-
-<div class="grid" id="grid"></div>
+<div id="menu">
 
 <div>
-
-<div>B
-<span class="light" id="b1"></span>
-<span class="light" id="b2"></span>
-<span class="light" id="b3"></span>
+モード
+<br>
+<button onclick="startPitcher()">ピッチャー（計算）</button>
+<button onclick="startBatter()">バッター（漢字）</button>
 </div>
 
-<div>S
-<span class="light" id="s1"></span>
-<span class="light" id="s2"></span>
+<div style="margin-top:20px">
+学年
+<br>
+<select id="grade">
+<option value="1">1年</option>
+<option value="2">2年</option>
+<option value="3">3年</option>
+<option value="4">4年</option>
+<option value="5">5年</option>
+<option value="6">6年</option>
+</select>
 </div>
 
-<div>O
-<span class="light" id="o1"></span>
-<span class="light" id="o2"></span>
+<div style="margin-top:20px">
+
+問題タイプ
+<br>
+<select id="kanjiMode">
+<option value="read">読み</option>
+<option value="write">漢字</option>
+</select>
+
 </div>
+
+<div style="margin-top:20px">
+
+入力モード
+<br>
+<select id="device">
+<option value="tablet">タブレット</option>
+<option value="pc">PC</option>
+</select>
 
 </div>
 
 </div>
 
-<div id="result"></div>
+<div id="game" style="display:none">
+
+<div id="question"></div>
+
+<div id="grid"></div>
+
+<input id="pcInput" style="font-size:24px;display:none">
+
+<div id="judge"></div>
+
+</div>
+
+<div id="bso">
+B ⚪⚪⚪<br>
+S ⚪⚪<br>
+O ⚪⚪⚪
+</div>
 
 <script>
 
-let correctAnswer
-let startTime
+/* -------------------------
+漢字データ（例）
+-------------------------- */
 
-let strike=0
-let ball=0
-let hit=0
-let strikeOut=0
-let fourBalls=0
-let questionCount=0
+const kanjiData={
 
-function playBall(){
+1:["山","川","森","人","水","火","木","金","土","空"],
 
-resetGame()
-newQuestion()
+2:["雪","海","風","電","車","花","草","虫","魚","鳥"],
+
+3:["駅","橋","港","島","湖","旅","薬","油","緑","表"]
 
 }
 
-function resetGame(){
+/* -------------------------
+ゲーム状態
+-------------------------- */
 
-strike=0
-ball=0
-hit=0
-strikeOut=0
-fourBalls=0
-questionCount=0
+let mode=""
+let answer=""
+let selected=""
+let balls=0
+let strikes=0
+let outs=0
 
-updateBSO()
+/* -------------------------
+ゲーム開始
+-------------------------- */
+
+function startPitcher(){
+
+mode="pitcher"
+document.getElementById("menu").style.display="none"
+document.getElementById("game").style.display="block"
+
+newMath()
 
 }
 
-function newQuestion(){
+function startBatter(){
 
-let a=Math.floor(Math.random()*10)
-let b=Math.floor(Math.random()*10)
+mode="batter"
 
-correctAnswer=a+b
+document.getElementById("menu").style.display="none"
+document.getElementById("game").style.display="block"
+
+newKanji()
+
+}
+
+/* -------------------------
+ピッチャー問題
+-------------------------- */
+
+function newMath(){
+
+let a=Math.floor(Math.random()*9)+1
+let b=Math.floor(Math.random()*9)+1
+
+answer=(a+b).toString()
 
 document.getElementById("question").innerText=a+" + "+b
 
-createGrid()
-
-startTime=Date.now()
+createGrid(answer)
 
 }
 
-function createGrid(){
+/* -------------------------
+漢字問題
+-------------------------- */
+
+function newKanji(){
+
+let grade=document.getElementById("grade").value
+
+let list=kanjiData[grade]
+
+let k=list[Math.floor(Math.random()*list.length)]
+
+let type=document.getElementById("kanjiMode").value
+
+if(type=="read"){
+
+answer=toHiragana(k)
+
+document.getElementById("question").innerHTML=
+
+"太字の漢字の読みは？<br>わたしは <b>"+k+"</b> を見た"
+
+}
+
+else{
+
+answer=k
+
+document.getElementById("question").innerHTML=
+
+"太字の読みの漢字は？<br>わたしは <b>"+toHiragana(k)+"</b> を見た"
+
+}
+
+createGrid(answer)
+
+}
+
+/* -------------------------
+9マス生成
+-------------------------- */
+
+function createGrid(ans){
+
+selected=""
 
 let grid=document.getElementById("grid")
+
 grid.innerHTML=""
 
-let nums=[]
+let chars=ans.split("")
 
-while(nums.length<8){
+let pool="あいうえおかきくけこさしすせそたちつてとなにぬねの"
 
-let n=Math.floor(Math.random()*19)
+while(chars.length<9){
 
-if(n!=correctAnswer && !nums.includes(n)) nums.push(n)
+chars.push(pool[Math.floor(Math.random()*pool.length)])
 
 }
 
-nums.push(correctAnswer)
-nums.sort(()=>Math.random()-0.5)
+chars.sort(()=>Math.random()-0.5)
 
-nums.forEach(n=>{
+chars.forEach(c=>{
 
 let d=document.createElement("div")
+
 d.className="cell"
-d.innerText=n
-d.onclick=()=>answer(d,n)
+
+d.innerText=c
+
+d.onclick=()=>tap(c)
 
 grid.appendChild(d)
 
@@ -189,177 +279,98 @@ grid.appendChild(d)
 
 }
 
-function answer(cell,n){
+/* -------------------------
+タップ
+-------------------------- */
 
-let time=(Date.now()-startTime)/1000
+function tap(c){
 
-if(n==correctAnswer){
+selected+=c
 
-showMark(cell,"◯","correct")
+if(selected.length>=answer.length){
 
-}else{
-
-showMark(cell,"×","wrong")
-
-}
-
-pitcherJudge(n,time)
-
-setTimeout(newQuestion,600)
+judge()
 
 }
 
-function showMark(cell,symbol,type){
-
-let m=document.createElement("div")
-m.className="mark "+type
-m.innerText=symbol
-cell.appendChild(m)
-
 }
 
-function pitcherJudge(n,time){
+/* -------------------------
+判定
+-------------------------- */
 
-questionCount++
+function judge(){
 
-if(time>=2 && n!=correctAnswer){
+if(selected==answer){
 
-showJudge("HOME RUN")
-
-gameOver()
-return
-
-}
-
-if(n==correctAnswer && time<=1.2){
-
-strike++
-showJudge("STRIKE")
-
-}
-
-else if(n==correctAnswer && time>1.2 && time<=2){
-
-ball++
-showJudge("BALL")
+document.getElementById("judge").innerText="HIT"
 
 }
 
 else{
 
-hit++
-showJudge("HIT")
+document.getElementById("judge").innerText="OUT"
+
+outs++
 
 }
 
-updateBSO()
-
-if(strike>=3){
-
-strikeOut++
-showJudge("STRIKE OUT")
-
-strike=0
-ball=0
-questionCount=0
+setTimeout(next,1000)
 
 }
 
-if(ball>=4){
+/* -------------------------
+次問題
+-------------------------- */
 
-fourBalls++
-showJudge("FOUR BALLS")
+function next(){
 
-strike=0
-ball=0
-questionCount=0
-
-}
-
-if(hit>=4){
-
-gameOver()
-return
-
-}
-
-if(hit+fourBalls>=4){
-
-gameOver()
-return
-
-}
-
-if(strikeOut>=3){
-
-clearGame()
-return
-
-}
-
-if(questionCount>=6){
-
-strike=0
-ball=0
-questionCount=0
-
-}
-
-}
-
-function showJudge(text){
-
-document.getElementById("judge").innerText=text
-
-setTimeout(()=>{
 document.getElementById("judge").innerText=""
-},800)
+
+if(mode=="pitcher"){
+
+newMath()
 
 }
 
-function updateBSO(){
+else{
 
-let b=[b1,b2,b3]
-let s=[s1,s2]
-let o=[o1,o2]
-
-b.forEach(x=>x.style.background="#ddd")
-s.forEach(x=>x.style.background="#ddd")
-o.forEach(x=>x.style.background="#ddd")
-
-for(let i=0;i<ball && i<3;i++){
-
-b[i].style.background="green"
-
-}
-
-for(let i=0;i<strike && i<2;i++){
-
-s[i].style.background="orange"
-
-}
-
-for(let i=0;i<strikeOut && i<2;i++){
-
-o[i].style.background="red"
+newKanji()
 
 }
 
 }
 
-function gameOver(){
+/* -------------------------
+簡易ひらがな変換
+-------------------------- */
 
-document.getElementById("result").innerHTML=
+function toHiragana(k){
 
-"<h2>GAME OVER</h2><button onclick='location.reload()'>ピッチャー交代</button>"
-
+const map={
+山:"やま",
+川:"かわ",
+森:"もり",
+人:"ひと",
+水:"みず",
+火:"ひ",
+木:"き",
+金:"かね",
+土:"つち",
+空:"そら",
+雪:"ゆき",
+海:"うみ",
+風:"かぜ",
+電:"でん",
+車:"くるま",
+花:"はな",
+草:"くさ",
+虫:"むし",
+魚:"さかな",
+鳥:"とり"
 }
 
-function clearGame(){
-
-document.getElementById("result").innerHTML=
-
-"<h2>クリア！</h2><button onclick='location.reload()'>次のイニング</button>"
+return map[k]||""
 
 }
 
