@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>投算⚾️打語ゲーム</title>
+<title>⚾ピッチャー vs バッター</title>
 
 <style>
 
@@ -10,10 +10,6 @@ body{
 font-family:sans-serif;
 text-align:center;
 background:#eef4ff;
-}
-
-h1{
-font-size:34px;
 }
 
 .grid{
@@ -35,28 +31,20 @@ background:white;
 cursor:pointer;
 }
 
-.cell:hover{
-background:#cfe3ff;
-}
+.cell:hover{background:#cfe3ff;}
 
 .correct{background:#7cff8a;}
 .wrong{background:#ff8a8a;}
 
-button{
-font-size:18px;
-padding:8px 14px;
-margin:5px;
-}
-
 #question{
-font-size:26px;
+font-size:28px;
 margin:20px;
 }
 
 #spelling{
-font-size:24px;
+font-size:26px;
+letter-spacing:6px;
 margin:10px;
-letter-spacing:5px;
 }
 
 </style>
@@ -76,6 +64,19 @@ letter-spacing:5px;
 
 <br><br>
 
+計算
+<select id="operator">
+<option value="+">＋</option>
+<option value="-">−</option>
+<option value="*">×</option>
+<option value="/">÷</option>
+</select>
+
+基の数
+<select id="base"></select>
+
+<br><br>
+
 <button onclick="startGame()">プレイ</button>
 
 <div id="question"></div>
@@ -88,18 +89,28 @@ letter-spacing:5px;
 <script>
 
 let answer=""
-let spelling=""
 let input=""
 
+for(let i=1;i<=9;i++){
+let opt=document.createElement("option")
+opt.value=i
+opt.textContent=i
+document.getElementById("base").appendChild(opt)
+}
+
 const words=[
-"dog","cat","apple","book","fish","cake","milk","bird","star","tree"
+{word:"apple",jp:"りんご"},
+{word:"dog",jp:"いぬ"},
+{word:"cat",jp:"ねこ"},
+{word:"book",jp:"ほん"},
+{word:"fish",jp:"さかな"}
 ]
 
 function startGame(){
 
 input=""
-document.getElementById("spelling").innerText=""
 document.getElementById("result").innerText=""
+document.getElementById("spelling").innerText=""
 
 const mode=document.getElementById("mode").value
 
@@ -112,22 +123,49 @@ if(mode=="word") createWord()
 
 function createMath(){
 
-let a=Math.floor(Math.random()*10)
-let b=Math.floor(Math.random()*10)
+const op=document.getElementById("operator").value
+const base=parseInt(document.getElementById("base").value)
 
-answer=(a+b).toString()
+let x=Math.floor(Math.random()*9)+1
 
-document.getElementById("question").innerText=a+" + "+b+" = ?"
+if(op=="+"){
+answer=x
+let result=base+x
+document.getElementById("question").innerText=
+base+" + □ = "+result
+}
+
+if(op=="-"){
+answer=x
+let result=base-x
+document.getElementById("question").innerText=
+base+" − □ = "+result
+}
+
+if(op=="*"){
+answer=x
+let result=base*x
+document.getElementById("question").innerText=
+base+" × □ = "+result
+}
+
+if(op=="/"){
+answer=x
+let result=base/x
+document.getElementById("question").innerText=
+base+" ÷ □ = "+result
+}
+
+answer=answer.toString()
 
 let nums=[]
 
 while(nums.length<8){
-
-nums.push(Math.floor(Math.random()*18).toString())
-
+nums.push((Math.floor(Math.random()*9)+1).toString())
 }
 
 nums.push(answer)
+
 nums=nums.sort(()=>Math.random()-0.5)
 
 drawGrid(nums,checkMath)
@@ -150,37 +188,43 @@ setTimeout(startGame,1000)
 
 function createUpper(){
 
-const alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const lower="abcdefghijklmnopqrstuvwxyz"
+const upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-answer=alphabet[Math.floor(Math.random()*26)]
+let i=Math.floor(Math.random()*26)
+
+answer=upper[i]
 
 document.getElementById("question").innerText=
-"この文字を探せ！ "+answer
+"大文字を選べ → "+lower[i]
 
-let letters=alphabet.split("").sort(()=>Math.random()-0.5).slice(0,8)
+let list=upper.split("").sort(()=>Math.random()-0.5).slice(0,8)
 
-letters.push(answer)
-letters=letters.sort(()=>Math.random()-0.5)
+list.push(answer)
+list=list.sort(()=>Math.random()-0.5)
 
-drawGrid(letters,checkLetter)
+drawGrid(list,checkLetter)
 
 }
 
 function createLower(){
 
-const alphabet="abcdefghijklmnopqrstuvwxyz"
+const lower="abcdefghijklmnopqrstuvwxyz"
+const upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-answer=alphabet[Math.floor(Math.random()*26)]
+let i=Math.floor(Math.random()*26)
+
+answer=lower[i]
 
 document.getElementById("question").innerText=
-"この文字を探せ！ "+answer
+"小文字を選べ → "+upper[i]
 
-let letters=alphabet.split("").sort(()=>Math.random()-0.5).slice(0,8)
+let list=lower.split("").sort(()=>Math.random()-0.5).slice(0,8)
 
-letters.push(answer)
-letters=letters.sort(()=>Math.random()-0.5)
+list.push(answer)
+list=list.sort(()=>Math.random()-0.5)
 
-drawGrid(letters,checkLetter)
+drawGrid(list,checkLetter)
 
 }
 
@@ -200,24 +244,22 @@ setTimeout(startGame,1000)
 
 function createWord(){
 
-answer=words[Math.floor(Math.random()*words.length)]
+const obj=words[Math.floor(Math.random()*words.length)]
 
-spelling=answer
+answer=obj.word
 input=""
 
 document.getElementById("question").innerText=
-"英単語を完成させよう"
+"この意味の英単語 → "+obj.jp
 
 updateSpelling()
 
-let letters=spelling.split("")
+let letters=answer.split("")
 
 const alphabet="abcdefghijklmnopqrstuvwxyz"
 
 while(letters.length<9){
-
 letters.push(alphabet[Math.floor(Math.random()*26)])
-
 }
 
 letters=letters.sort(()=>Math.random()-0.5)
@@ -230,7 +272,7 @@ function updateSpelling(){
 
 let display=""
 
-for(let i=0;i<spelling.length;i++){
+for(let i=0;i<answer.length;i++){
 
 if(i<input.length) display+=input[i]+" "
 else display+="_ "
@@ -244,20 +286,14 @@ document.getElementById("spelling").innerText=display
 function checkWord(v,cell){
 
 input+=v
-
 updateSpelling()
 
-if(input.length>=spelling.length){
+if(input.length>=answer.length){
 
-if(input==spelling){
-
-cell.classList.add("correct")
+if(input==answer){
 document.getElementById("result").innerText="ホームラン！"
-
 }else{
-
 document.getElementById("result").innerText="アウト"
-
 }
 
 setTimeout(startGame,1200)
